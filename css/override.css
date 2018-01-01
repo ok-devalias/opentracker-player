@@ -1,0 +1,178 @@
+body {
+  background-color: #33332D;
+  font-family: 'Ubuntu Mono';
+}
+
+a {
+  color: #DB4105;
+}
+
+hr {
+  background-color: #33332D;
+  border-color: #33332D;
+}
+
+.btn-search {
+  color: #333;
+  background-color: #FFF8E3;
+  border-color: #33332D;
+  margin-left: 10px;
+  margin-bottom: 4px;
+}
+
+.spinner {
+  display: inline-block;
+  opacity: 0;
+  width: 0;
+
+  -webkit-transition: opacity 0.25s, width 0.25s;
+  -moz-transition: opacity 0.25s, width 0.25s;
+  -o-transition: opacity 0.25s, width 0.25s;
+  transition: opacity 0.25s, width 0.25s;
+}
+
+.has-spinner.active {
+  cursor:progress;
+}
+
+.has-spinner.active .spinner {
+  opacity: 1;
+  width: auto; /* This doesn't work, just fix for unkown width elements */
+}
+
+.has-spinner.btn.active .spinner {
+    width: 16px;
+}
+
+.row {
+  margin-left: 0px;
+  margin-right: 0px;
+}
+
+.truncated {
+  overflow: hidden;
+  position: relative;
+  height: 60;
+}
+
+.container {
+  margin-bottom: 15px;
+}
+
+.truncated:after {
+  content: "";
+  text-align: right;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 70%;
+  height: 20;
+  background: linear-gradient(to right, rgba(204, 204, 159, 0), rgba(204, 204, 159, 1) 50%);
+}
+
+.nav.sidebar {
+  border-style: solid;
+  border-radius: 30px 15px;
+  border-color: #33332D;
+  background-color: #CCCC9F;
+  margin: 15px;
+}
+
+.channel-data > .mod-data {
+  width: 13ch;
+  display: inline;
+}
+
+.r15 > span {
+  background-color: #CCCC9F;
+}
+
+.navbar-default {
+  color: #333;
+  background-color: #9CA996;
+  border-color: #33332D;
+  border-radius: 0px 0px 10px 10px;
+  border-width: 0px 0px 1px 0px;
+}
+
+.navbar-default .navbar-brand {
+  color: #333;
+  font-size: 25px;
+  line-height: 16px;
+}
+
+.navbar-subtitle {
+  padding-top: 25px;
+  padding-left: 45px;
+}
+
+.navbar-nav.navbar-right:last-child {
+  margin-right: 25px;
+  color: #333;
+}
+
+.gen-info {
+  background-color: #FFF8E3;
+  border-radius: 12px 13px;
+  margin-top: 8px;
+  padding-bottom: 10px;
+}
+
+.player-info {
+  background-color: #9CA996;
+  border-radius: 12px 13px;
+  margin-top: 8px;
+  padding-bottom: 30px;
+  white-space: nowrap;
+  width: 1140px;
+}
+
+.gen-mod-info {
+  margin-top: 10px;
+}
+
+.dl dt {
+  text-align: left;
+}
+
+dl.file-info dt {
+  width: 15ch;
+  text-align: left;
+}
+
+dl.file-info dd {
+  margin-left: 16ch;
+}
+
+dl.nectarine-info dt {
+  width: 17ch;
+  margin-left: 8px;
+  text-align: left;
+}
+
+dl.nectarine-info dd {
+  margin-left: 17ch;
+}
+
+dl.player-data dt {
+  width: 18ch;
+  text-align: left;
+}
+
+dl.player-data dd {
+  margin-left: 10ch;
+}
+
+div#controls {
+  margin-bottom: 20px;
+}
+
+#pattern-data {
+  overflow-x: auto;
+  white-space: nowrap;
+  width: 1025px;
+}
+
+.notes {
+  font-weight: bold;
+}

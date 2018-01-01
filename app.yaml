@@ -1,15 +1,23 @@
 runtime: python27
 api_version: 1
 threadsafe: yes
-service: datastore
 
 libraries:
 - name: webapp2
   version: latest
 - name: ssl
   version: latest
+- name: jinja2
+  version: latest
 
 handlers:
+- url: /css
+  static_dir: css
+- url: /js
+  static_dir: js
+- url: /libopenmpt.js.mem
+  static_files: libopenmpt.js.mem
+  upload: libopenmpt.js.mem
 - url: /.*
   script: otp_datastore.app
   login: optional

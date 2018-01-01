@@ -1,12 +1,26 @@
+import jinja2
 import json
 import logging
+import os
 import random
 import webapp2
 
 import ds_utils
+from google.appengine.api import users
 from google.cloud import datastore
 from requests_toolbelt.adapters import appengine
 
+
+JINJA_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+    extensions=['jinja2.ext.autoescape'],
+    autoescape=True,
+    block_start_string='<%',
+    block_end_string='%>',
+    variable_start_string='%%',
+    variable_end_string='%%',
+    comment_start_string='<#',
+    comment_end_string='#>')
 
 # Needed to force requests to work well on AppEngine
 appengine.monkeypatch()
@@ -102,7 +116,31 @@ class GetPlaylist(webapp2.RequestHandler):
         return artist_mods
 
 
+class MainPage(webapp2.RequestHandler):
+
+    def get(self):
+        """Handler for initial content loading."""
+        user = users.get_current_user()
+        if user:
+            url = users.create_logout_url(self.request.uri)
+            url_linktext = 'Sign out'
+        else:
+            url = users.create_login_url(self.request.uri)
+            url_linktext = 'Sign in'
+
+        template_values = {
+            'is_admin': users.IsCurrentUserAdmin(),
+            'user': user,
+            'url': url,
+            'url_linktext': url_linktext,
+        }
+
+        template = JINJA_ENVIRONMENT.get_template('index.html')
+        self.response.write(template.render(template_values))
+
+
 app = webapp2.WSGIApplication([
     ('/get/mod', GetSingleModule),
     ('/get/playlist', GetPlaylist),
+    ('/', MainPage),
 ])

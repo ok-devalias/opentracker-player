@@ -1,0 +1,155 @@
+<html ng-app="ompt">
+  <head>
+    <!-- CSS -->
+    <link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type='text/css' href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" type='text/css' href="/css/scrollbar.css">
+    <link rel="stylesheet" type='text/css' href="/css/override.css">
+    <!-- JavaScript -->
+    <script type="text/javascript" src="https://use.fontawesome.com/b62de649de.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.scrollbar.min.js"></script>
+    <script type="text/javascript" src="/js/libopenmpt.js"></script>
+    <script type="text/javascript" src="/js/chiptune2.js"></script>
+    <script type="text/javascript" src="/js/player.js"></script>
+    <script type="text/javascript" src="/js/ompt.js"></script>
+  </head>
+  <body>
+    <nav class="navbar navbar-default" role="navigation">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <span class="navbar-brand">OpenMPT Player</span>
+      </div>
+      <div class="collapse navbar-collapse">
+        <div class="nav navbar-nav navbar-subtitle">
+          <span>Powered by <a href="https://github.com/deskjet/chiptune2.js">Chiptune2.js</a> and <a href="http://lib.openmpt.org/libopenmpt/">libopenmpt</a></span>
+        </div>
+        <div class="nav navbar-nav navbar-right login">
+          <span class="navbar-text">
+              <a class="navbar-link" href="%% url %%"> %% url_linktext %% </a>
+          </span>
+        </div>
+      </div>
+    </nav>
+    <div class="container">
+      <div class="gen-info">
+        <div class="row">
+          <!-- Current Mod Info and Play Controls -->
+          <div class="col-md-8">
+            <div class="row">
+              <div class="col-md-12">
+                <div id="controls">
+                  <a onclick="pauseButton()" id="pause" class="control"><span id="playpause-btn" class="h5 fa fa-play"></span></a>
+                  <a onclick="stopButton()" id="stop" class="control"><span id="stop-btn" class="h5 fa fa-stop"></span></a>
+                  <a onclick="randomPlay('/get/mod')" id="next" href="#" class="control"><span id="next-btn" class="h5 fa fa-step-forward"></span></a>
+                  <div id="demosong"><a id="nextSong" onclick="randomPlay('/get/mod')" href="#">Play</a> a random <a href="http://modarchive.org/">Mod Archive</a> song!</div>
+                  <% if is_admin %>
+                    <div><a id="mute" href="#">Perma-Mute this song.</a></div>
+                  <% endif %>
+                </div>
+              </div>
+            </div>
+            <div class="row" ng-controller="SongMetaData as info">
+              <div class="col-md-6">
+                <dl class="dl-horizontal file-info">
+                  <dt>Title</dt><dd id="title">{{title}}</dd>
+                  <dt>By Artist</dt><dd id='artisthandle'></dd>
+                  <dt>Made with</dt><dd id='tracker'>{{trackerType}}</dd>
+                  <dt>Filename</dt><dd id="filename"></dd>
+                </dl>
+              </div>
+              <div class="col-md-6">
+                <dl class="dl-horizontal file-info">
+                  <dt>File Size</dt><dd id="filesize"></dd>
+                  <dt>Release Date</dt><dd id="releasedate">{{releaseDate}}</dd>
+                  <dt class="modarchive">ModArchive Hits</dt><dd class="modarchive" id="hits"></dd>
+                  <dt class="modarchive">ModArchive Link</dt><dd class="modarchive" id="tmaurl"><a></a></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <!-- Nectarine Sidebar -->
+          <div class="col-md-4">
+            <div class="nav sidebar">
+              <div class="navtitle text-center">Search</div>
+              <dl class="dl-horizontal nectarine-info">
+                <dt>All by Artist</dt><dd><input class="search" id="search-handle" type="search" placeholder="Lizardking"></dd>
+      		      <dt>TMA id</dt><dd><input class="search" id="search-id" type="search" placeholder="115238"></dd>
+                <dt>Filename</dt><dd><input class="search" id="search-filename" type="search" placeholder="beek-blue_slide.it"></dd>
+              </dl>
+              <button class="btn btn-search has-spinner" id="search-btn">
+                <span class="spinner"><i class='fa fa-spinner fa-pulse fa-fw'></i></span>
+                Search!
+              </button>
+            </div>
+          </div>
+	      </div>
+      </div>
+      <div class="player-info">
+        <div class="row">
+          <div class="mod-data">
+            <div ng-controller="SongData as vm" class="song-data">
+              <div class="col-md-2 col-md-offset-1">
+                <dl class="dl-horizontal player-data">
+                  <dt>Pattern</dt><dd id="pattern">{{curPattern}}</dd>
+                  <dt>Order</dt><dd id="order">{{order}}</dd>
+                  <dt>Row</dt><dd id="prow">{{prow}}</dd>
+                </dl>
+              </div>
+              <div class="col-md-2 col-md-offset-1">
+                <dl class="dl-horizontal player-data">
+                  <dt>Active Channels</dt><dd id="channels">{{channels}}</dd>
+                  <dt>Speed</dt><dd id="speed">{{speed}}</dd>
+                  <dt>Tempo</dt><dd id="tempo">{{tempo}}</dd>
+                </dl>
+              </div>
+              <div class="col-md-2 col-md-offset-1">
+                <dl class="dl-horizontal player-data">
+                  <dt>Time</dt><dd id="time">{{time}}</dd>
+                  <dt>Duration</dt><dd id="length">{{duration}}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Pattern Data Below -->
+        <div class="row">
+          <div ng-controller="PatternData">
+            <div class="col-md-11">
+              <div id="pattern-data" class="scrollbar-rail">
+                <div class="row">
+                  <div class="col-md-2">
+                  </div>
+                </div>
+                <div ng-repeat="r in pData | limitTo:vis_rows track by $index">
+                  <div class="row">
+                    <div class="col-md-1">
+                      |+|
+                    </div>
+                    <div class="col-md-11">
+                      <div class="channel-data r{{$index}}">
+                        <span ng-repeat="ch in r track by $index">
+                          {{getChannelData($parent.$index, $index)}}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div> <!-- rail -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+
+  </script>
+</html>
