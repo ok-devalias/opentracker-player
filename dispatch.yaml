@@ -1,0 +1,7 @@
+dispatch:
+  # datastore requests to datastore service
+  - url: '*/get/*'
+    service: datastore
+  # All others to default service
+  - url: '*/*'
+    service: default
