@@ -6,6 +6,7 @@ var mSetOrderRow = Module._openmpt_module_set_position_order_row;
 var mGetNumOrders = Module._openmpt_module_get_num_orders;
 var mGetNumPatternRows = Module._openmpt_module_get_pattern_num_rows;
 var mGetOrderPattern = Module._openmpt_module_get_order_pattern;
+var mGetCurPattern = Module._openmpt_module_get_current_pattern;
 var mGetCurOrder = Module._openmpt_module_get_current_order;
 var mGetCurRow = Module._openmpt_module_get_current_row;
 var mFormatChannel =  Module._openmpt_module_format_pattern_row_channel; // needs Stringify
@@ -36,7 +37,7 @@ function secondsToTimestamp(seconds) {
   return padLeft(min, 2) + ":" + padLeft(sec, 2);
 }
 
-function padLeft(nr, n, str){
+function padLeft(nr, n, str) {
     return Array(n-String(nr).length+1).join(str||'0')+nr;
 }
 
@@ -54,13 +55,13 @@ app.controller(
     $scope.speed = '';
     $scope.time = '';
 
-    stopSongData = $interval(function(){
+    stopSongData = $interval(function() {
       if (!playerAvailable()) {
         clearPatternData();
         return;
       }
 
-      $scope.curPattern = mGetOrderPattern(player.currentPlayingNode.modulePtr);
+      $scope.curPattern = mGetCurPattern(player.currentPlayingNode.modulePtr);
       $scope.numPatternRows = mGetNumPatternRows(player.currentPlayingNode.modulePtr, $scope.curPattern);
       $scope.currentRow = mGetCurRow(player.currentPlayingNode.modulePtr);
       $scope.channels = mGetActiveChannels(player.currentPlayingNode.modulePtr);
@@ -106,7 +107,7 @@ app.controller(
         built = true;
       }
       var curOrder = mGetCurOrder(player.currentPlayingNode.modulePtr);
-      var curPattern = mGetOrderPattern(player.currentPlayingNode.modulePtr, curOrder);
+      var curPattern = mGetCurPattern(player.currentPlayingNode.modulePtr);
       $scope.currentRow = mGetCurRow(player.currentPlayingNode.modulePtr);
       $scope.numRows = mGetNumPatternRows(player.currentPlayingNode.modulePtr, curPattern);
       $scope.pData = mData[curOrder];
@@ -145,7 +146,7 @@ app.controller(
 
     function padLeft(nr, n, str) {
       return Array(n-String(nr).length+1).join(str||'0')+nr;
-	  };
+    };
 
     $scope.getChannelData = function(row, channel) {
       if (!playerAvailable()) return "";
@@ -182,7 +183,8 @@ app.controller(
 
       stopSongMetaData = $interval(function() {
         if (!playerAvailable()) {
-          clearMetaData();
+          clearMetadata();
+	  clearQueriedMetadata();
           return;
         }
         if (typeof metadata === "undefined") {
@@ -206,7 +208,7 @@ app.controller(
 
       }, 100);
 
-      function clearMetaData() {
+      function clearMetadata() {
         $scope.title = '';
         $scope.trackerType = '';
         $scope.releaseDate = '';
