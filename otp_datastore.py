@@ -1,146 +1,176 @@
+import datetime
 import jinja2
-import json
 import logging
-import os
 import random
-import webapp2
+import flask
+from flask import Flask, jsonify, request
+from flask.templating import render_template
+from pathlib import Path
 
 import ds_utils
-from google.appengine.api import users
+import firebase_admin
+from firebase_admin import auth, exceptions
 from google.cloud import datastore
-from requests_toolbelt.adapters import appengine
+from google.cloud import logging as glogging
 
 
-JINJA_ENVIRONMENT = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
-    extensions=['jinja2.ext.autoescape'],
-    autoescape=True,
-    block_start_string='<%',
-    block_end_string='%>',
-    variable_start_string='%%',
-    variable_end_string='%%',
-    comment_start_string='<#',
-    comment_end_string='#>')
+JINJA_OPTIONS = {
+    'loader': jinja2.FileSystemLoader('templates'),
+    'autoescape': True,
+    'block_start_string': '<%',
+    'block_end_string': '%>',
+    'variable_start_string': '%%',
+    'variable_end_string': '%%',
+    'comment_start_string': '<#',
+    'comment_end_string': '#>'
+    }
+TEMPLATE = 'index.html'
+# Flask setup
+app = Flask(__name__)
+app.jinja_options = JINJA_OPTIONS
+firebase_app = firebase_admin.initialize_app()
 
-# Needed to force requests to work well on AppEngine
-appengine.monkeypatch()
+# GCP setup
 project = 'opentracker-player'
 client = datastore.Client(project=project)
 curated_partial_keys = None
+log_client = glogging.Client()
+log_client.get_default_handler()
+log_client.setup_logging()
 
 
-class GetSingleModule(webapp2.RequestHandler):
+@app.route('/get/mod')
+def get_mod():
+    """Handler for single-module get requests."""
+    global curated_partial_keys
 
-    def get(self):
-        """Handler for single-module get requests."""
-        global curated_partial_keys
+    mute_id = request.args.get('mute')
+    if mute_id:
+        set_mute(mute_id)
 
-        mute_id = self.request.get('mute')
-        if mute_id:
-            self.set_mute(mute_id)
+    muted_keys = ds_utils.get_muted_mods(client)
+    muted_partial_keys = build_partial_key_set(muted_keys)
 
-        muted_keys = ds_utils.get_muted_mods(client)
-        muted_partial_keys = self.build_partial_key_set(muted_keys)
+    if curated_partial_keys is None:
+        all_mod_keys = ds_utils.get_mod_keys(client)
+        all_partial_keys = build_partial_key_set(all_mod_keys)
+        curated_partial_keys = list(all_partial_keys - muted_partial_keys)
 
-        if curated_partial_keys is None:
-            all_mod_keys = ds_utils.get_mod_keys(client)
-            all_partial_keys = self.build_partial_key_set(all_mod_keys)
-            curated_partial_keys = list(all_partial_keys - muted_partial_keys)
+    rkey = request.args.get('key')
+    tmaid = request.args.get('id')
+    filename = request.args.get('filename')
 
-        rkey = self.request.get('key')
-        tmaid = self.request.get('id')
-        filename = self.request.get('filename')
-
-        if rkey:
-            k = client.key('Module', int(rkey))
-            mod = ds_utils.get_entity_by_key(client, k)
-        elif tmaid:
-            mod = self.get_mod_by_tmaid(tmaid)
-        elif filename:
-            mod = self.get_mod_by_filename(filename)
-        else:
-            mod = self.get_random_mod()
-        self.response.write(json.dumps(mod))
-
-    @staticmethod
-    def build_partial_key_set(entity_list):
-        return set([e.key.id_or_name for e in entity_list])
-
-    @staticmethod
-    def get_random_mod():
-        global curated_partial_keys
-        random.shuffle(curated_partial_keys)
-        index = random.randint(0, len(curated_partial_keys) - 1)
-        k = client.key('Module', int(curated_partial_keys[index]))
-        return ds_utils.get_entity_by_key(client, k)
-
-    @staticmethod
-    def get_mod_by_tmaid(tmaid):
-        return ds_utils.get_mods_by_param(client, 'tmaid', tmaid)[0]
-
-    @staticmethod
-    def get_mod_by_filename(filename):
-        return ds_utils.get_mods_by_param(client, 'filename', filename)[0]
-
-    @staticmethod
-    def set_mute(mod_id):
-        logging.info('Muting mod id: %s', mod_id)
-        query = ds_utils.mod_query(client)
-        query.add_filter('tmaid', '=', mod_id)
-        mod = list(query.fetch())[0]
-        mod['mute'] = True
-        client.put(mod)
+    if rkey:
+        k = client.key('Module', int(rkey))
+        mod = ds_utils.get_entity_by_key(client, k)
+    elif tmaid:
+        mod = get_mod_by_tmaid(tmaid)
+    elif filename:
+        mod = get_mod_by_filename(filename)
+    else:
+        mod = get_random_mod()
+    return mod
 
 
-class GetPlaylist(webapp2.RequestHandler):
-
-    def get(self):
-        """Handler for playlist get requests."""
-        handle = self.request.get('handle')
-        if not handle:
-            self.response.write(json.dumps({'error': 'No handle provided.'}))
-            return
-        shuffled_mods = self.get_shuffled_mods_by_handle(handle)
-        if not shuffled_mods:
-            self.response.write(json.dumps(
-                {'error': 'No results for handle: %s' % handle}))
-            return
-        shuffled_key_ids = [m.key.id_or_name for m in shuffled_mods]
-        response = {'keys': shuffled_key_ids}
-        self.response.write(json.dumps(response))
-
-    @staticmethod
-    def get_shuffled_mods_by_handle(handle):
-        artist_mods = ds_utils.get_mods_by_param(client, 'artisthandle', handle)
-        random.shuffle(artist_mods)
-        return artist_mods
+def build_partial_key_set(entity_list):
+    return set([e.key.id_or_name for e in entity_list])
 
 
-class MainPage(webapp2.RequestHandler):
-
-    def get(self):
-        """Handler for initial content loading."""
-        user = users.get_current_user()
-        if user:
-            url = users.create_logout_url(self.request.uri)
-            url_linktext = 'Sign out'
-        else:
-            url = users.create_login_url(self.request.uri)
-            url_linktext = 'Sign in'
-
-        template_values = {
-            'is_admin': users.IsCurrentUserAdmin(),
-            'user': user,
-            'url': url,
-            'url_linktext': url_linktext,
-        }
-
-        template = JINJA_ENVIRONMENT.get_template('index.html')
-        self.response.write(template.render(template_values))
+def get_random_mod():
+    global curated_partial_keys
+    random.shuffle(curated_partial_keys)
+    index = random.randint(0, len(curated_partial_keys) - 1)
+    k = client.key('Module', int(curated_partial_keys[index]))
+    return ds_utils.get_entity_by_key(client, k)
 
 
-app = webapp2.WSGIApplication([
-    ('/get/mod', GetSingleModule),
-    ('/get/playlist', GetPlaylist),
-    ('/', MainPage),
-])
+def get_mod_by_tmaid(tmaid):
+    return ds_utils.get_mods_by_param(client, 'tmaid', tmaid)[0]
+
+
+def get_mod_by_filename(filename):
+    return ds_utils.get_mods_by_param(client, 'filename', filename)[0]
+
+
+def set_mute(mod_id):
+    logging.info('Muting mod id: %s', mod_id)
+    query = ds_utils.mod_query(client)
+    query.add_filter('tmaid', '=', mod_id)
+    mod = list(query.fetch())[0]
+    mod['mute'] = True
+    client.put(mod)
+
+
+#class GetPlaylist(webapp2.RequestHandler):
+@app.route('/get/playlist')
+def get_playlist():
+    """Handler for playlist get requests."""
+    handle = request.args.get('handle')
+    if not handle:
+        return {'error': 'No handle provided.'}
+
+    shuffled_mods = get_shuffled_mods_by_handle(handle)
+    if not shuffled_mods:
+        return {'error': f'No results for handle: {handle}'}
+
+    shuffled_key_ids = [m.key.id_or_name for m in shuffled_mods]
+    return {'keys': shuffled_key_ids}
+
+
+
+def get_shuffled_mods_by_handle(handle):
+    artist_mods = ds_utils.get_mods_by_param(client, 'artisthandle', handle)
+    random.shuffle(artist_mods)
+    return artist_mods
+
+
+@app.route('/sessionLogin', methods=['POST'])
+def session_login():
+    id_token = request.form.get('idToken')
+    
+    expiry = datetime.timedelta(days=14)
+    try:
+        # Create the session cookie. This will also verify the ID token in the
+        # process. The session cookie will have the same claims as the ID token.
+        session_cookie = auth.create_session_cookie(id_token, expires_in=expiry)
+        response = jsonify({'status': 'success'})
+        # Set cookie policy for session cookie.
+        expires = datetime.datetime.now() + expiry
+        response.set_cookie(
+            'session', session_cookie, expires=expires, httponly=True,
+            secure=True)
+        return response
+    except exceptions.FirebaseError:
+        return flask.abort(401, 'Failed to create a session cookie')
+
+
+@app.route('/sessionLogout', methods=['POST'])
+def session_logout():
+    response = flask.make_response(flask.redirect('/'))
+    response.set_cookie('session', expires=0)
+    return response
+
+
+@app.route('/')
+def get_home():
+    """Handler for initial content loading."""
+    logging.info("CWD: %s" % Path.cwd())
+    logging.info("Does ./templates exist? %s" % (
+        Path.cwd() / 'templates').exists())
+    logging.info("Does index.html exist? %s" % (
+        Path.cwd() / 'templates' / 'index.html').exists())
+    # Add Firebase Auth
+    session_cookie = request.cookies.get('session')
+    claims = {}
+    # Login is optional, so don't force it if cookie is missing or expired.
+    if session_cookie:
+        try:
+            claims = auth.verify_session_cookie(session_cookie)
+        except auth.InvalidSessionCookieError:
+            pass
+
+    template_values = {
+        'is_admin': claims.get('admin', False),
+    }
+    
+    return render_template(TEMPLATE, **template_values)

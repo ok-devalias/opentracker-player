@@ -1,14 +1,5 @@
-runtime: python27
-api_version: 1
-threadsafe: yes
-
-libraries:
-- name: webapp2
-  version: latest
-- name: ssl
-  version: latest
-- name: jinja2
-  version: latest
+runtime: python39
+entrypoint: gunicorn -w 1 otp_datastore:app
 
 handlers:
 - url: /css
@@ -18,6 +9,3 @@ handlers:
 - url: /libopenmpt.js.mem
   static_files: libopenmpt.js.mem
   upload: libopenmpt.js.mem
-- url: /.*
-  script: otp_datastore.app
-  login: optional

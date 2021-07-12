@@ -1,11 +1,16 @@
 <html ng-app="ompt">
   <head>
     <!-- CSS -->
-    <link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type='text/css' href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-    <link rel="stylesheet" type='text/css' href="/css/scrollbar.css">
-    <link rel="stylesheet" type='text/css' href="/css/override.css">
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu+Mono">
+    <link rel="stylesheet" type="text/css" href="https://www.gstatic.com/firebasejs/ui/4.4.0/firebase-ui-auth.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/css/scrollbar.css">
+    <link rel="stylesheet" type="text/css" href="/css/override.css">    
     <!-- JavaScript -->
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.7.1/firebase-analytics.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/firebasejs/ui/4.8.0/firebase-ui-auth.js"></script>
     <script type="text/javascript" src="https://use.fontawesome.com/b62de649de.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
     <script type="text/javascript" src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
@@ -17,6 +22,62 @@
     <script type="text/javascript" src="/js/ompt.js"></script>
   </head>
   <body>
+    
+    <script>
+      // Your web app's Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      var firebaseConfig = {
+        apiKey: "AIzaSyAtLChN1P5cmLvnz5NU4cg3bteiDFw7F1Q",
+        authDomain: "opentracker-player.firebaseapp.com",
+        projectId: "opentracker-player",
+        storageBucket: "opentracker-player.appspot.com",
+        messagingSenderId: "485596083317",
+        appId: "1:485596083317:web:47636f184a87680885343c",
+        measurementId: "G-57W5W3HVKL"
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      firebase.analytics();
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+
+      var uiConfig = {
+        callbacks: {
+          signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+            return false;
+          }
+        },
+        signInFlow: 'popup',
+        signInOptions: [
+          firebase.auth.GoogleAuthProvider.PROVIDER_ID
+        ]
+      };
+      // Initialize the FirebaseUI Widget using Firebase.
+      var ui = new firebaseui.auth.AuthUI(firebase.auth());
+      if (firebase.auth().currentUser == null) {
+        ui.start('#firebaseui-auth-container', uiConfig);
+      }
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          $('#firebaseui-auth-container')[0].setAttribute('hidden', 'true');
+          // $('#user-pic')[0].textContent = user.profilePic;
+          $('#user-name')[0].textContent = user.displayName;
+          $('#current-user-info')[0].removeAttribute('hidden');
+          return user.getIdToken().then(idToken => {
+            $.ajax({
+              url: '/sessionLogin',
+              type: "POST",
+              data: {'idToken': idToken},
+            })
+          })          
+        } else {
+          $('#current-user-info')[0].setAttribute('hidden', 'true');
+          $('#firebaseui-auth-container')[0].removeAttribute('hidden');
+          ui.start('#firebaseui-auth-container', uiConfig);
+        }
+      });
+    </script>
+
     <nav class="navbar navbar-default" role="navigation">
       <div class="navbar-header">
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
@@ -33,7 +94,11 @@
         </div>
         <div class="nav navbar-nav navbar-right login">
           <span class="navbar-text">
-              <a class="navbar-link" href="%% url %%"> %% url_linktext %% </a>
+            <div id="firebaseui-auth-container"></div>
+            <div id="current-user-info" hidden>
+              <div id="user-pic"></div>
+              <div id="user-name"></div>
+            </div>
           </span>
         </div>
       </div>

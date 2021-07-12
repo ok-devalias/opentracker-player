@@ -108,7 +108,21 @@ hr {
 
 .navbar-nav.navbar-right:last-child {
   margin-right: 25px;
+  max-height: 45px;
   color: #333;
+}
+
+.navbar-default .navbar-text {
+  float: unset;
+}
+
+.firebaseui-idp-button, .firebaseui-tenant-button {
+  padding: 0 10px;
+  min-height: 30px;
+}
+
+.firebaseui-idp-google>.firebaseui-idp-text {
+  font-family: 'Ubuntu Mono';
 }
 
 .gen-info {
