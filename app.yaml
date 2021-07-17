@@ -9,3 +9,6 @@ handlers:
 - url: /libopenmpt.js.mem
   static_files: libopenmpt.js.mem
   upload: libopenmpt.js.mem
+- url: /.*
+  secure: optional
+  script: auto

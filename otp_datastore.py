@@ -31,8 +31,7 @@ app.jinja_options = JINJA_OPTIONS
 firebase_app = firebase_admin.initialize_app()
 
 # GCP setup
-project = 'opentracker-player'
-client = datastore.Client(project=project)
+client = datastore.Client()
 curated_partial_keys = None
 log_client = glogging.Client()
 log_client.get_default_handler()
@@ -101,7 +100,6 @@ def set_mute(mod_id):
     client.put(mod)
 
 
-#class GetPlaylist(webapp2.RequestHandler):
 @app.route('/get/playlist')
 def get_playlist():
     """Handler for playlist get requests."""
